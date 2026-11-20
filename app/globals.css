@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@import "./draftship-theme.css";
+
+:root {
+  --background: oklch(0.985 0.006 197);
+  --foreground: oklch(0.22 0.02 197);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 197);
+  --muted: oklch(0.957 0.009 197);
+  --muted-foreground: oklch(0.52 0.021 197);
+  --border: oklch(0.9 0.012 197);
+  --input: oklch(0.88 0.014 197);
+  --primary: oklch(0.55 0.17 197);
+  --primary-foreground: oklch(0.99 0.004 197);
+  --accent: oklch(0.94 0.032 197);
+  --accent-foreground: oklch(0.36 0.09 197);
+  --ring: oklch(0.55 0.17 197);
+  --destructive: oklch(0.58 0.19 25);
+  --success: oklch(0.56 0.13 158);
+  --chart-1: oklch(0.55 0.17 197);
+  --chart-2: oklch(0.64 0.15 78);
+  --chart-grid: oklch(0.9 0.012 197);
+}
+
+.dark {
+  --background: oklch(0.19 0.016 197);
+  --foreground: oklch(0.96 0.008 197);
+  --card: oklch(0.235 0.018 197);
+  --card-foreground: oklch(0.96 0.008 197);
+  --muted: oklch(0.28 0.02 197);
+  --muted-foreground: oklch(0.72 0.021 197);
+  --border: oklch(0.32 0.02 197);
+  --input: oklch(0.36 0.022 197);
+  --primary: oklch(0.7 0.161 197);
+  --primary-foreground: oklch(0.16 0.02 197);
+  --accent: oklch(0.32 0.05 197);
+  --accent-foreground: oklch(0.9 0.06 197);
+  --ring: oklch(0.7 0.161 197);
+  --destructive: oklch(0.68 0.18 25);
+  --success: oklch(0.74 0.14 158);
+  --chart-1: oklch(0.7 0.161 197);
+  --chart-2: oklch(0.78 0.14 78);
+  --chart-grid: oklch(0.34 0.02 197);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-feature-settings: "cv11", "ss01";
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}

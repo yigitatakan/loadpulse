@@ -1,0 +1,20 @@
+{
+  "name": "Bucket",
+  "type": "object",
+  "properties": {
+    "runId": { "type": "string" },
+    "clientKey": { "type": "string" },
+    "second": { "type": "number" },
+    "requests": { "type": "number" },
+    "errors": { "type": "number" },
+    "avgLatency": { "type": "number" },
+    "statusCodes": { "type": "string" }
+  },
+  "required": ["runId", "second"],
+  "rls": {
+    "create": false,
+    "read": { "user_condition": { "role": "admin" } },
+    "update": false,
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

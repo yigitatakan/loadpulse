@@ -1,0 +1,13 @@
+{
+  "name": "scheduled-rerun",
+  "description": "Re-check saved sites that have automatic checks turned on, every 30 minutes",
+  "trigger": { "type": "schedule", "every": "30m" },
+  "steps": [
+    {
+      "id": "check",
+      "type": "function",
+      "function": "scheduledRerun",
+      "input": {}
+    }
+  ]
+}

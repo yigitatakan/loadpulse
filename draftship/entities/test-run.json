@@ -1,0 +1,33 @@
+{
+  "name": "TestRun",
+  "type": "object",
+  "properties": {
+    "clientKey": { "type": "string" },
+    "targetUrl": { "type": "string" },
+    "label": { "type": "string" },
+    "concurrency": { "type": "number" },
+    "durationSeconds": { "type": "number" },
+    "status": { "type": "string", "enum": ["running", "completed", "stopped", "failed"] },
+    "total": { "type": "number" },
+    "success": { "type": "number" },
+    "errors": { "type": "number" },
+    "avgLatency": { "type": "number" },
+    "p95Latency": { "type": "number" },
+    "minLatency": { "type": "number" },
+    "maxLatency": { "type": "number" },
+    "rps": { "type": "number" },
+    "proxyLabel": { "type": "string" },
+    "proxyPorts": { "type": "number" },
+    "errorMessage": { "type": "string" },
+    "stopRequested": { "type": "boolean", "default": false },
+    "startedAt": { "type": "string" },
+    "finishedAt": { "type": "string" }
+  },
+  "required": ["targetUrl"],
+  "rls": {
+    "create": false,
+    "read": { "user_condition": { "role": "admin" } },
+    "update": false,
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Target",
+  "type": "object",
+  "properties": {
+    "label": { "type": "string" },
+    "url": { "type": "string" },
+    "notes": { "type": "string" },
+    "autoCheck": { "type": "boolean", "default": false },
+    "lastChecked": { "type": "string" }
+  },
+  "required": ["url"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

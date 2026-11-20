@@ -1,0 +1,23 @@
+{
+  "name": "Proxy",
+  "type": "object",
+  "properties": {
+    "label": { "type": "string" },
+    "host": { "type": "string" },
+    "port": { "type": "number" },
+    "username": { "type": "string" },
+    "lastIp": { "type": "string" },
+    "lastCountry": { "type": "string" },
+    "lastIsp": { "type": "string" },
+    "lastCity": { "type": "string" },
+    "lastCheckedAt": { "type": "string" },
+    "lastError": { "type": "string" }
+  },
+  "required": ["host", "port"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

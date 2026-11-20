@@ -1,0 +1,100 @@
+/*
+ * Draftship theme — light and dark colors as tokens. Managed by Draftship; do not edit.
+ * Change the app's colors by redefining these variables in app/globals.css, once under :root
+ * (light) and once under .dark, after the import of this file.
+ * The look follows Apple's: the system font (Inter elsewhere), quiet grouped surfaces, hairline
+ * borders and soft shadows.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.975 0.002 286);
+  --foreground: oklch(0.2 0.004 286);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.004 286);
+  --muted: oklch(0.95 0.003 286);
+  --muted-foreground: oklch(0.52 0.008 286);
+  --border: oklch(0.9 0.004 286);
+  --input: oklch(0.87 0.005 286);
+  --primary: oklch(0.55 0.17 200);
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.95 0.03 200);
+  --accent-foreground: oklch(0.38 0.12 200);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.62 0.17 150);
+  --ring: oklch(0.55 0.17 200 / 0.45);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.145 0.002 286);
+  --foreground: oklch(0.96 0.002 286);
+  --card: oklch(0.205 0.004 286);
+  --card-foreground: oklch(0.96 0.002 286);
+  --muted: oklch(0.25 0.004 286);
+  --muted-foreground: oklch(0.7 0.006 286);
+  --border: oklch(0.3 0.005 286);
+  --input: oklch(0.34 0.006 286);
+  --primary: oklch(0.7 0.15 200);
+  --primary-foreground: oklch(0.17 0.02 200);
+  --accent: oklch(0.28 0.05 200);
+  --accent-foreground: oklch(0.88 0.08 200);
+  --destructive: oklch(0.66 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.72 0.17 150);
+  --ring: oklch(0.7 0.15 200 / 0.5);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-ring: var(--ring);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Helvetica Neue", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Helvetica Neue", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.06);
+}
+
+@layer base {
+  html {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Large titles sit tight, like Apple's. */
+  h1, h2, h3 {
+    letter-spacing: -0.022em;
+  }
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+  /* Switching themes shouldn't animate every color on the page. */
+  .ds-theme-switching,
+  .ds-theme-switching * {
+    transition: none !important;
+  }
+}
+
+@keyframes ds-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
