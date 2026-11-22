@@ -89,25 +89,33 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="grid min-h-dvh place-items-center">
+      <div className="relative grid min-h-dvh place-items-center px-4">
         <PageLoader />
+        <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-[11px] text-muted-foreground">
+          Made with Draftship
+        </p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <AuthScreen
-        appName="LoadPulse"
-        tagline="Send parallel traffic to a site you own and watch latency, errors and throughput arrive second by second."
-        highlights={[
-          "Free account — your own sites, proxies and run history",
-          "Up to 300 parallel connections in one burst",
-          "Live CPU and RAM of the machine sending the traffic",
-          "Every run saved with its per-second history",
-        ]}
-        onSignedIn={(value) => setUser(readUser(value))}
-      />
+      <div className="relative min-h-dvh">
+        <AuthScreen
+          appName="LoadPulse"
+          tagline="Send parallel traffic to a site you own and watch latency, errors and throughput arrive second by second."
+          highlights={[
+            "Free account — your own sites, proxies and run history",
+            "Up to 300 parallel connections in one burst",
+            "Live CPU and RAM of the machine sending the traffic",
+            "Every run saved with its per-second history",
+          ]}
+          onSignedIn={(value) => setUser(readUser(value))}
+        />
+        <p className="pointer-events-none fixed inset-x-0 bottom-3 z-10 px-4 text-center text-[11px] text-muted-foreground sm:bottom-4 sm:pr-6 sm:text-right">
+          Made with Draftship
+        </p>
+      </div>
     );
   }
 
@@ -166,6 +174,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           to them. Only test sites you own or are authorised to test. One burst is capped at 300 connections, 45
           seconds and 400,000 requests.
         </p>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">Made with Draftship</p>
       </footer>
     </div>
   );

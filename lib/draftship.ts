@@ -48,6 +48,10 @@ function signedIn(r: AuthResponse): DsUser {
   throw new DraftshipError(500, "Sign-in failed");
 }
 
+function framed(): boolean {
+  try { return window.self !== window.top; } catch { return true; }
+}
+
 function token(): string | null {
   if (typeof window === "undefined") return null;
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -233,7 +237,23 @@ export const ds = {
     resetPassword: async (token: string, password: string) => signedIn(await request<AuthResponse>("POST", "auth/reset", { token, password })),
     /** Sends the visitor to Google or the app's SSO provider, then back to `next`. */
     loginWithProvider: (provider: "google" | "sso", next = typeof window !== "undefined" ? window.location.pathname : "/") => {
-      if (typeof window !== "undefined") window.location.href = `${BASE}/auth/${provider}?next=${encodeURIComponent(next)}`;
+      if (typeof window === "undefined") return;
+      const url = `${BASE}/auth/${provider}?next=${encodeURIComponent(next)}`;
+      if (!framed()) { window.location.href = url; return; }
+      // Google won't sign in inside a frame (the editor's preview), so sign-in opens in a popup that
+      // hands its token back through the server under a random code only these two windows know.
+      const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) => x.toString(16).padStart(2, "0")).join("");
+      const popup = window.open(`${BASE}/login?handoff=${nonce}&go=${encodeURIComponent(url)}`, "ds-signin", "width=500,height=650");
+      if (!popup) { window.location.href = `${BASE}/login?next=${encodeURIComponent(next)}`; return; }
+      const until = Date.now() + 5 * 60_000;
+      const poll = async () => {
+        if (Date.now() > until) return;
+        const r = await request<{ token: string | null }>("POST", "auth/handoff", { nonce }).catch(() => ({ token: null }));
+        if (!r.token) { setTimeout(poll, 1500); return; }
+        signedIn(await request<AuthResponse>("POST", "auth/session", { token: r.token }));
+        window.location.href = next;
+      };
+      setTimeout(poll, 1500);
     },
     /** Opens Draftship's hosted sign-in page (email, Google, SSO, sign-up, password reset). */
     redirectToLogin: (next = typeof window !== "undefined" ? window.location.pathname : "/") => {

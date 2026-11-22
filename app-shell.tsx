@@ -164,9 +164,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <p className="border-t border-border/60 pt-5 text-[12px] leading-relaxed text-muted-foreground">
           LoadPulse is open to everyone with an account, and every member&apos;s sites, proxies and runs stay private
           to them. Only test sites you own or are authorised to test. One burst is capped at 300 connections, 45
-          seconds and 400,000 requests.
-        </p>
-      </footer>
+            seconds and 400,000 requests.
+          </p>
+          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">Made with Draftship</p>
+        </footer>
     </div>
   );
 }
