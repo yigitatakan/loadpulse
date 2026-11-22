@@ -13,8 +13,8 @@
   "required": ["runId", "second"],
   "rls": {
     "create": false,
-    "read": { "user_condition": { "role": "admin" } },
+    "read": { "created_by": "{{user.email}}" },
     "update": false,
-    "delete": { "user_condition": { "role": "admin" } }
+    "delete": false
   }
 }

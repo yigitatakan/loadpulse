@@ -350,12 +350,19 @@ export const ds = {
       /** Returns text, or a parsed object when response_json_schema is given. */
       InvokeLLM: <R = string>(input: { prompt: string; response_json_schema?: Record<string, unknown> }) => request<R>("POST", "integrations/Core/InvokeLLM", input),
       GenerateImage: (input: { prompt: string }) => request<{ url: string }>("POST", "integrations/Core/GenerateImage", input),
+      /** Text of an audio file uploaded with UploadFile (mp3, m4a, wav, ogg, webm, flac, aac; up to 10 MB). */
+      TranscribeAudio: (input: { file_url: string; language?: string }) => request<{ text: string }>("POST", "integrations/Core/TranscribeAudio", input),
       UploadFile: (input: { file: File | Blob }) => {
         const form = new FormData();
         form.append("file", input.file);
         return request<{ file_url: string }>("POST", "integrations/Core/UploadFile", form);
       },
       SendEmail: (input: { to: string; subject: string; body: string; from_name?: string }) => request<{ success: boolean }>("POST", "integrations/Core/SendEmail", input),
+    },
+    /** Outside APIs the owner added from an OpenAPI spec (Dashboard → Integrations). The API key is added by Draftship. */
+    Custom: {
+      call: <R = unknown>(integration: string, operationId: string, input: { params?: Record<string, unknown>; body?: unknown } = {}) =>
+        request<{ status: number; ok: boolean; data: R }>("POST", `integrations/Custom/${encodeURIComponent(integration)}/${encodeURIComponent(operationId)}`, input),
     },
   },
 };

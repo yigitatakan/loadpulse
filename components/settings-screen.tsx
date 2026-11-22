@@ -219,15 +219,15 @@ function SettingsBody() {
       </div>
 
       <Card>
-        <SectionHeader
-          title="Scheduled checks"
-          description="LoadPulse re-checks the sites you switch on every 30 minutes."
-          action={
-            <Pill tone={proxyUrlConfigured ? "success" : "muted"}>
-              {proxyUrlConfigured ? "PROXY_URL set" : "No default proxy"}
-            </Pill>
-          }
-        />
+          <SectionHeader
+            title="Scheduled checks"
+            description="LoadPulse re-checks your sites every 30 minutes while their checks are on."
+            action={
+              <Pill tone={proxyUrlConfigured ? "success" : "muted"}>
+                {proxyUrlConfigured ? "PROXY_URL set" : "Direct checks"}
+              </Pill>
+            }
+          />
         <div className="px-5 pb-5 sm:px-6">
           {targets.length === 0 ? (
             <EmptyState
@@ -277,20 +277,24 @@ function SettingsBody() {
         <SectionHeader title="Good to know" />
           <div className="space-y-3 px-5 pb-6 text-[13px] leading-relaxed text-muted-foreground sm:px-6">
             <p>
+              LoadPulse is open to everyone with an account. Your saved sites, proxies and run history belong to you
+              alone — nobody else can open them, and the console only ever tests sites you added yourself.
+            </p>
+            <p>
               A website&apos;s CPU and RAM cannot be read from the outside, so LoadPulse reports what traffic
               actually feels: response time, error rate and throughput. The console also shows the CPU and RAM of the
-              container sending the traffic, sampled live.
+              shared container sending the traffic, sampled live.
             </p>
-              <p>
-                The app runs in a small container, so a burst is capped at {LIMITS.maxConcurrency} connections,{" "}
-                {LIMITS.maxDuration} seconds and {new Intl.NumberFormat("en-US").format(LIMITS.maxRequests)} requests.
-                For a longer soak test, run it from a machine you control.
-              </p>
-              <p>
-                Only HTTP and HTTPS proxies are supported. The exit-IP check calls the public IP-info endpoint
-                through the proxy you saved.
-              </p>
-        </div>
+            <p>
+              Every member shares one small container, so a burst is capped at {LIMITS.maxConcurrency} connections,{" "}
+              {LIMITS.maxDuration} seconds and {new Intl.NumberFormat("en-US").format(LIMITS.maxRequests)} requests,
+              and each account can run one test at a time. For a longer soak test, run it from a machine you control.
+            </p>
+            <p>
+              Only HTTP and HTTPS proxies are supported. The exit-IP check calls a public IP-info endpoint through the
+              proxy you saved.
+            </p>
+          </div>
       </Card>
     </div>
   );

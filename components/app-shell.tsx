@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, BarChart3, GitCompareArrows, Globe2, LogOut, Settings2, ShieldAlert } from "lucide-react";
-import { AuthScreen, PageLoader, ThemeToggle } from "@/lib/draftship-ui";
+import { Activity, BarChart3, GitCompareArrows, Globe2, LogOut, Settings2 } from "lucide-react";
+import { AuthScreen, PageLoader, ThemeToggle, toast } from "@/lib/draftship-ui";
 import { ds } from "@/lib/draftship";
 
-type OwnerUser = { email?: string; role?: string };
+type MemberUser = { email?: string; role?: string; full_name?: string };
 
-function readUser(value: unknown): OwnerUser | null {
+function readUser(value: unknown): MemberUser | null {
   if (!value) return null;
-  const record = value as { email?: string; role?: string };
-  return { email: record.email, role: record.role };
+  const record = value as { email?: string; role?: string; full_name?: string };
+  return { email: record.email, role: record.role, full_name: record.full_name };
 }
 
 const NAV = [
@@ -37,9 +37,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-xl px-3 text-[13px] font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             <Icon className="size-4" />
@@ -54,7 +52,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<OwnerUser | null>(null);
+  const [user, setUser] = useState<MemberUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -82,6 +80,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
       await ds.auth.logout();
       setUser(null);
       router.push("/");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "You could not be signed out");
     } finally {
       setSigningOut(false);
     }
@@ -99,41 +99,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return (
       <AuthScreen
         appName="LoadPulse"
-        tagline="Send parallel traffic to your own websites and watch latency, errors and throughput arrive in real time."
-          highlights={[
-            "A private console — only the owner account can open it",
-            "Up to 600 parallel connections per burst",
-            "Live CPU and RAM of the machine sending the traffic",
-            "Every run saved with per-second history",
-          ]}
+        tagline="Send parallel traffic to a site you own and watch latency, errors and throughput arrive second by second."
+        highlights={[
+          "Free account — your own sites, proxies and run history",
+          "Up to 300 parallel connections in one burst",
+          "Live CPU and RAM of the machine sending the traffic",
+          "Every run saved with its per-second history",
+        ]}
         onSignedIn={(value) => setUser(readUser(value))}
       />
     );
   }
 
-  if (user.role && user.role !== "admin") {
-    return (
-      <div className="grid min-h-dvh place-items-center px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 text-center shadow-soft">
-          <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
-            <ShieldAlert className="size-5" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">This console is private</h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            LoadPulse only opens for the owner account. Sign in with the email that created this app.
-          </p>
-          <button
-            type="button"
-            onClick={signOut}
-            disabled={signingOut}
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-[14px] font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-          >
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const name = user.full_name || user.email || "Member";
 
   return (
     <div className="min-h-dvh">
@@ -154,6 +132,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <span
+              className="hidden max-w-[180px] truncate rounded-full bg-muted px-3 py-1.5 text-[12px] font-medium text-muted-foreground sm:inline-block"
+              title={name}
+            >
+              {name}
+            </span>
             <ThemeToggle />
             <button
               type="button"
@@ -168,10 +152,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="border-t border-border/60 md:hidden">
-          <nav
-            className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-3 py-2"
-            aria-label="Main"
-          >
+          <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-3 py-2" aria-label="Main">
             <NavLinks pathname={pathname} />
           </nav>
         </div>
@@ -179,12 +160,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
 
-        <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
-          <p className="border-t border-border/60 pt-5 text-[12px] leading-relaxed text-muted-foreground">
-            LoadPulse only tests sites you own or are authorised to test. A burst is capped at 600 connections, 45
-            seconds and 400,000 requests, and the container&apos;s own CPU and RAM are sampled live on the console.
-          </p>
-        </footer>
+      <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
+        <p className="border-t border-border/60 pt-5 text-[12px] leading-relaxed text-muted-foreground">
+          LoadPulse is open to everyone with an account, and every member&apos;s sites, proxies and runs stay private
+          to them. Only test sites you own or are authorised to test. One burst is capped at 300 connections, 45
+          seconds and 400,000 requests.
+        </p>
+      </footer>
     </div>
   );
 }

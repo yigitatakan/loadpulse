@@ -122,8 +122,7 @@ export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user) return json({ error: "Sign in first" }, 401);
 
-  const role = (user as unknown as { role?: string }).role;
-  if (role !== "admin") return json({ error: "Only the app owner can read the container stats." }, 403);
+  // Every member sees the same shared container, so the numbers are not personal.
 
   try {
     const [cpu, memory] = await Promise.all([sampleCpu(), readMemory()]);

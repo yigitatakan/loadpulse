@@ -10,8 +10,8 @@ export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user) return json({ error: "Sign in first" }, 401);
 
+  const callerEmail = String(user.email ?? "").toLowerCase();
   const role = (user as unknown as { role?: string }).role;
-  if (role !== "admin") return json({ error: "Only the app owner can stop runs." }, 403);
 
   let payload: Record<string, unknown>;
   try {
@@ -29,6 +29,11 @@ export async function POST(req: Request) {
     const records = await ds.entities.TestRun.filter({ clientKey }, "-created_date");
     const running = records.map(asRecord).find((record) => record.status === "running");
     if (!running) return json({ error: "No running test was found for this key." }, 404);
+
+    const owner = String(running.created_by ?? "").toLowerCase();
+    if (role !== "admin" && owner !== callerEmail) {
+      return json({ error: "That run belongs to another account." }, 403);
+    }
 
     const runId = String(running.id ?? "");
     if (!runId) return json({ error: "No running test was found for this key." }, 404);

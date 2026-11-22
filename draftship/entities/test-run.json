@@ -26,8 +26,8 @@
   "required": ["targetUrl"],
   "rls": {
     "create": false,
-    "read": { "user_condition": { "role": "admin" } },
+    "read": { "created_by": "{{user.email}}" },
     "update": false,
-    "delete": { "user_condition": { "role": "admin" } }
+    "delete": { "created_by": "{{user.email}}" }
   }
 }

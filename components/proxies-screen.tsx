@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import Link from "next/link";
-import { Globe2, Layers, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Globe2, Layers, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { Spinner, toast } from "@/lib/draftship-ui";
 import { ds } from "@/lib/draftship";
 import AppShell from "@/components/app-shell";
@@ -11,7 +10,7 @@ import { Card, EmptyState, Pill, SectionHeader } from "@/components/ui";
 import { asRecord, recordId, timeAgo, toProxy, type ProxyRecord } from "@/lib/loadpulse";
 import { LIMITS } from "@/lib/limits";
 
-type SavedPool = {
+type SharedPool = {
   configured: boolean;
   host: string;
   username: string;
@@ -20,7 +19,7 @@ type SavedPool = {
   ports: number[];
 };
 
-const EMPTY_POOL: SavedPool = {
+const EMPTY_POOL: SharedPool = {
   configured: false,
   host: "",
   username: "",
@@ -44,7 +43,8 @@ function ProxiesBody() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
-  const [pool, setPool] = useState<SavedPool>(EMPTY_POOL);
+  const [pool, setPool] = useState<SharedPool>(EMPTY_POOL);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [label, setLabel] = useState("");
   const [host, setHost] = useState("");
@@ -55,7 +55,7 @@ function ProxiesBody() {
 
   const [rangeStart, setRangeStart] = useState("10001");
   const [rangeCount, setRangeCount] = useState("10");
-  const [rangeLabel, setRangeLabel] = useState("Decodo pool");
+  const [rangeLabel, setRangeLabel] = useState("My proxy pool");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,7 +68,15 @@ function ProxiesBody() {
     } finally {
       setLoading(false);
     }
+
     try {
+      const me = asRecord(await ds.auth.me());
+      const admin = me.role === "admin";
+      setIsAdmin(admin);
+      if (!admin) {
+        setPool(EMPTY_POOL);
+        return;
+      }
       const status = asRecord(await ds.functions.invoke("proxyStatus", { poolSize: 10 }));
       const ports = Array.isArray(status.ports)
         ? (status.ports as unknown[]).map((value) => Number(value)).filter((value) => Number.isFinite(value))
@@ -84,14 +92,8 @@ function ProxiesBody() {
       if (typeof status.portStart === "number" && status.portStart > 0) {
         setRangeStart(String(status.portStart));
       }
-        const savedHost = typeof status.host === "string" ? status.host : "";
-        const savedUser = typeof status.username === "string" ? status.username : "";
-        if (savedHost) {
-          setHost((current) => current || savedHost);
-        }
-        if (savedUser) {
-          setUsername((current) => current || savedUser);
-        }
+      const savedHost = typeof status.host === "string" ? status.host : "";
+      if (savedHost) setHost((current) => current || savedHost);
     } catch {
       setPool(EMPTY_POOL);
     }
@@ -108,7 +110,7 @@ function ProxiesBody() {
     const cleanHost = host.trim();
     const cleanPort = Number(port);
     if (!cleanHost) {
-      setFormError("Enter the proxy host, for example dc.decodo.com");
+      setFormError("Enter the proxy host, for example proxy.example.com");
       return;
     }
     if (!Number.isFinite(cleanPort) || cleanPort < 1 || cleanPort > 65535) {
@@ -155,14 +157,14 @@ function ProxiesBody() {
       toast.error(`Pick between 1 and ${LIMITS.maxPoolPorts} ports`);
       return;
     }
-    const cleanHost = (host.trim() || pool.host || "").trim();
-    const cleanUser = (username.trim() || pool.username || "").trim();
+    const cleanHost = host.trim();
+    const cleanUser = username.trim();
     if (!cleanHost) {
       toast.error("Add the proxy host first");
       return;
     }
     if (!password) {
-      toast.error("Enter the proxy password so the ports can be tested");
+      toast.error("Enter the proxy password so the ports can be used");
       return;
     }
 
@@ -230,66 +232,67 @@ function ProxiesBody() {
     <div className="space-y-6">
       <header className="space-y-2">
         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">Proxies</p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Route traffic through a proxy pool</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Your own proxy list</h1>
         <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Rotating providers give you a new exit IP on every port. Keep the same host and login, raise the port by
-          one, and LoadPulse spreads your connections across all of them.
+          Add the proxies you own and every burst you send can be spread across them. Rotating providers give a
+          different exit IP on every port, so a port range is usually all you need.
         </p>
       </header>
 
-      <Card>
-        <SectionHeader
-          title="Saved proxy pool"
-          description="The PROXY_URL secret is the base of the pool — every port from it is a different exit IP."
-          action={
-            <Pill tone={pool.configured ? "success" : "muted"}>
-              {pool.configured ? "PROXY_URL is set" : "PROXY_URL is not set"}
-            </Pill>
-          }
-        />
-        <div className="px-5 pb-6 sm:px-6">
-          {pool.configured && pool.ports.length > 0 ? (
-            <>
-              <dl className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Host</dt>
-                  <dd className="num mt-1 truncate text-[14px] font-semibold">{pool.host}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Login</dt>
-                  <dd className="num mt-1 truncate text-[14px] font-semibold">{pool.username || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                    Ports in the pool
-                  </dt>
-                  <dd className="num mt-1 truncate text-[14px] font-semibold">
-                    {pool.ports[0]}–{pool.ports[pool.ports.length - 1]}
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground">
-                <Layers className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                The console counts up from port {pool.portStart}. Up to {LIMITS.maxPoolPorts} ports can be used in one
-                run, and each one is a separate exit IP.
-              </p>
-            </>
-          ) : (
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
-              The PROXY_URL secret is not set, so there is no base pool yet. You can still add single proxies below,
-              or add the secret in{" "}
-              <Link href="/settings" className="text-primary underline-offset-2 hover:underline">
-                settings
-              </Link>
-              .
-            </p>
-          )}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Saved proxies</p>
+          <p className="num mt-2 text-[22px] font-semibold leading-none">{loading ? "—" : proxies.length}</p>
         </div>
-      </Card>
+        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Checked</p>
+          <p className="num mt-2 text-[22px] font-semibold leading-none">
+            {loading ? "—" : proxies.filter((proxy) => proxy.lastIp).length}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Ports per burst</p>
+          <p className="num mt-2 text-[22px] font-semibold leading-none">{LIMITS.maxPoolPorts}</p>
+        </div>
+      </div>
+
+      {isAdmin && pool.configured ? (
+        <Card>
+          <SectionHeader
+            title="Your shared pool"
+            description="The PROXY_URL secret on this app, available to you as the owner."
+            action={<Pill tone="success">PROXY_URL is set</Pill>}
+          />
+          <div className="px-5 pb-6 sm:px-6">
+            <dl className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Host</dt>
+                <dd className="num mt-1 truncate text-[14px] font-semibold">{pool.host}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Login</dt>
+                <dd className="num mt-1 truncate text-[14px] font-semibold">{pool.username || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Ports in the pool
+                </dt>
+                <dd className="num mt-1 truncate text-[14px] font-semibold">
+                  {pool.ports[0]}–{pool.ports[pool.ports.length - 1]}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground">
+              <Layers className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              The console counts up from port {pool.portStart}. Up to {LIMITS.maxPoolPorts} ports can be used in one run.
+            </p>
+          </div>
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
-          <SectionHeader title="Saved proxies" description={loading ? "Loading…" : `${proxies.length} saved`} />
+          <SectionHeader title="Your saved proxies" description={loading ? "Loading…" : `${proxies.length} saved`} />
           {loading ? (
             <div className="grid place-items-center py-16">
               <Spinner />
@@ -311,8 +314,8 @@ function ProxiesBody() {
           ) : proxies.length === 0 ? (
             <EmptyState
               icon={<Globe2 className="size-5" />}
-              title="No proxies saved"
-              description="Import a port range on the right, or add a single proxy, then press Test to see the exit IP it gives you."
+              title="No proxies yet"
+              description="Import a port range on the right, or add a single proxy. Press Test to see the exit IP it gives you. You can also send traffic directly, without a proxy."
             />
           ) : (
             <ul className="divide-y divide-border/60 border-t border-border/60">
@@ -377,10 +380,7 @@ function ProxiesBody() {
 
         <div className="space-y-6">
           <Card>
-            <SectionHeader
-              title="Import a port range"
-              description="Same host and login, one port per exit IP."
-            />
+            <SectionHeader title="Import a port range" description="Same host and login, one port per exit IP." />
             <div className="space-y-4 px-5 pb-5 sm:px-6">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -449,7 +449,7 @@ function ProxiesBody() {
                   id="proxy-label"
                   value={label}
                   onChange={(event) => setLabel(event.target.value)}
-                  placeholder="Decodo residential"
+                  placeholder="My residential proxy"
                   className="mt-1.5 h-11 w-full rounded-xl border border-input bg-background px-3 text-[14px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
@@ -463,7 +463,7 @@ function ProxiesBody() {
                     id="proxy-host"
                     value={host}
                     onChange={(event) => setHost(event.target.value)}
-                    placeholder="dc.decodo.com"
+                    placeholder="proxy.example.com"
                     spellCheck={false}
                     className="mt-1.5 h-11 w-full rounded-xl border border-input bg-background px-3 text-[14px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-ring"
                   />
@@ -508,8 +508,9 @@ function ProxiesBody() {
                   autoComplete="new-password"
                   className="mt-1.5 h-11 w-full rounded-xl border border-input bg-background px-3 text-[14px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-ring"
                 />
-                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  Saved in a separate record that only the backend can read. It is never shown again.
+                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                  Stored in a separate record that only the server can read. It is never shown again.
                 </p>
               </div>
 

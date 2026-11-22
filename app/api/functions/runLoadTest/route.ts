@@ -12,8 +12,8 @@ import {
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Hard ceilings. They are deliberately high: the owner runs this on their own sites. */
-export const MAX_CONCURRENCY = 600;
+/** Hard ceilings. Every signed-in member stays inside them. */
+export const MAX_CONCURRENCY = 300;
 export const MIN_CONCURRENCY = 1;
 export const MAX_DURATION = 45;
 export const MIN_DURATION = 3;
@@ -45,12 +45,17 @@ function labelForPool(baseLabel: string, portStart: number, portEnd: number, siz
   return `${baseLabel} · ${size} ports (${portStart}–${portEnd})`;
 }
 
+function emailOf(user: { email?: string }): string {
+  return String(user.email ?? "").toLowerCase();
+}
+
 export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user) return json({ error: "Sign in first" }, 401);
 
   const role = (user as unknown as { role?: string }).role;
-  if (role !== "admin") return json({ error: "Only the app owner can run load tests." }, 403);
+  const isAdmin = role === "admin";
+  const callerEmail = emailOf(user as { email?: string });
 
   let payload: Record<string, unknown>;
   try {
@@ -77,12 +82,31 @@ export async function POST(req: Request) {
 
   const ds = createServiceClient(req);
 
+  // One burst per account at a time keeps the shared container responsive.
+  try {
+    const running = await ds.entities.TestRun.filter({ status: "running" }, "-created_date");
+    const alreadyRunning = running
+      .map(asRecord)
+      .some((record) => String(record.created_by ?? "").toLowerCase() === callerEmail);
+    if (alreadyRunning) {
+      return json({ error: "A run is already in progress on your account. Wait for it to finish." }, 429);
+    }
+  } catch {
+    /* if the check itself fails the run still goes ahead */
+  }
+
   let proxyUrls: string[] = [];
   let proxyBaseLabel = "Direct";
   let baseUrl: string | null = null;
 
   try {
     if (proxyChoice === "saved") {
+      if (!isAdmin) {
+        return json(
+          { error: "The shared proxy pool belongs to the app owner. Save your own proxy on the Proxies page." },
+          403,
+        );
+      }
       const saved = process.env.PROXY_URL?.trim();
       if (!saved) {
         return json(
@@ -97,6 +121,10 @@ export async function POST(req: Request) {
       proxyBaseLabel = "PROXY_URL";
     } else if (proxyChoice !== "direct" && proxyChoice !== "none" && proxyChoice.length > 0) {
       const proxyRecord = asRecord(await ds.entities.Proxy.get(proxyChoice));
+      const owner = String(proxyRecord.created_by ?? "").toLowerCase();
+      if (owner !== callerEmail) {
+        return json({ error: "That proxy belongs to another account." }, 403);
+      }
       const host = String(proxyRecord.host ?? "");
       const port = Number(proxyRecord.port ?? 0);
       if (!host || !Number.isFinite(port) || port <= 0) {
@@ -149,6 +177,17 @@ export async function POST(req: Request) {
       }),
     );
     runId = String(created.id ?? "");
+    if (!runId) return json({ error: "The run record could not be created." }, 500);
+
+    const owner = String(created.created_by ?? "").toLowerCase();
+    if (owner && owner !== callerEmail) {
+      try {
+        await ds.entities.TestRun.delete(runId);
+      } catch {
+        /* nothing else to clean up */
+      }
+      return json({ error: "The run could not be attached to your account." }, 403);
+    }
   } catch {
     return json({ error: "The run record could not be created." }, 500);
   }

@@ -19,13 +19,15 @@ function round(value: number, digits = 1): number {
   return Math.round(value * factor) / factor;
 }
 
+/**
+ * Re-checks saved sites whose owner switched automatic checks on.
+ * Each run is written by that site's owner, so the check works for every account.
+ */
 export async function POST(req: Request) {
   const automation = await isAutomation(req);
   if (!automation) {
     const user = await getUser(req);
     if (!user) return json({ error: "Sign in first" }, 401);
-    const role = (user as unknown as { role?: string }).role;
-    if (role !== "admin") return json({ error: "Only the app owner can run checks." }, 403);
   }
 
   const ds = createServiceClient(req);
@@ -78,9 +80,7 @@ export async function POST(req: Request) {
           minLatency: 0,
           maxLatency: 0,
           rps: 0,
-          proxyLabel: savedProxy
-            ? `PROXY_URL · ${Math.max(1, savedProxyUrls.length)} ports`
-            : "Direct",
+          proxyLabel: savedProxy ? `PROXY_URL · ${Math.max(1, savedProxyUrls.length)} ports` : "Direct",
           proxyPorts: savedProxyUrls.length,
           stopRequested: false,
           startedAt: new Date().toISOString(),
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         durationMs: CHECK_DURATION_MS,
         maxRequests: 500,
         timeoutMs: CHECK_TIMEOUT_MS,
-          proxyUrls: savedProxyUrls,
+        proxyUrls: savedProxyUrls,
         onBucket: (bucket) => {
           collected.push(bucket);
         },

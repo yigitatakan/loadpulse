@@ -155,10 +155,10 @@ export default function SystemHealth({ active }: { active: boolean }) {
             <Activity className="size-4 text-primary" />
             Container CPU and RAM
           </h2>
-          <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
-            The machine that sends the traffic, sampled every two seconds.
-            {active ? " Live while the run is going." : ""}
-          </p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+              The shared machine that sends the traffic, sampled every two seconds.
+              {active ? " Live while the run is going." : ""}
+            </p>
         </div>
         <button
           type="button"

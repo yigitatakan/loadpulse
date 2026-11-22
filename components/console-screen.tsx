@@ -349,16 +349,16 @@ function ConsoleBody() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-3">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">Load testing</p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Send parallel traffic to your own site
-        </h1>
-        <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Type the address of a site you own, pick how many connections to open at once and whether to spread them
-          over a range of proxy ports. Latency, error rate and throughput arrive second by second.
-        </p>
-      </header>
+        <header className="space-y-3">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">Load testing</p>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Send parallel traffic to your own site
+          </h1>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+            Type the address of a site you own, pick how many connections to open at once and whether to spread them
+            over your proxy ports. Latency, error rate and throughput arrive second by second.
+          </p>
+        </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card>
@@ -455,7 +455,8 @@ function ConsoleBody() {
                   ))}
                 </div>
                 <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                  A run stops at {duration} s or when it reaches {formatNumber(maxRequestsHint)} requests.
+                  A run stops at {duration} s or when it reaches {formatNumber(maxRequestsHint)} requests. One run per
+                  account at a time.
                 </p>
               </div>
             </div>
@@ -464,31 +465,37 @@ function ConsoleBody() {
               <label htmlFor="proxy-choice" className="block text-[13px] font-medium">
                 Route through
               </label>
-              <select
-                id="proxy-choice"
-                value={proxyChoice}
-                onChange={(event) => setProxyChoice(event.target.value)}
-                className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-[14px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="direct">Direct connection (no proxy)</option>
-                {proxyStatus.configured ? (
-                  <option value="saved">
-                    Saved proxy pool (PROXY_URL{proxyStatus.portStart ? ` · ports from ${proxyStatus.portStart}` : ""})
-                  </option>
-                ) : null}
-                {proxies.map((proxy) => (
-                  <option key={proxy.id} value={proxy.id}>
-                    {proxy.label || `${proxy.host}:${proxy.port}`}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1.5 text-[12px] text-muted-foreground">
-                Add or test proxies on the{" "}
-                <Link href="/proxies" className="text-primary underline-offset-2 hover:underline">
-                  Proxies page
-                </Link>
-                .
-              </p>
+                <select
+                  id="proxy-choice"
+                  value={proxyChoice}
+                  onChange={(event) => setProxyChoice(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-[14px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="direct">Direct connection (no proxy)</option>
+                  {proxyStatus.configured ? (
+                    <option value="saved">
+                      Shared owner pool (PROXY_URL{proxyStatus.portStart ? ` · ports from ${proxyStatus.portStart}` : ""})
+                    </option>
+                  ) : null}
+                  {proxies.map((proxy) => (
+                    <option key={proxy.id} value={proxy.id}>
+                      {proxy.label || `${proxy.host}:${proxy.port}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                  {proxies.length === 0 ? (
+                    <>
+                      You have no proxies saved yet, so this run goes out directly. Add and test your own proxies on the{" "}
+                    </>
+                  ) : (
+                    <>Manage and test your proxies on the{" "}</>
+                  )}
+                  <Link href="/proxies" className="text-primary underline-offset-2 hover:underline">
+                    Proxies page
+                  </Link>
+                  .
+                </p>
             </div>
 
             {usesProxy ? (
@@ -596,7 +603,10 @@ function ConsoleBody() {
 
         <div className="space-y-6">
           <Card>
-            <SectionHeader title="Saved sites" description="Reuse an address and let LoadPulse check it on a schedule." />
+              <SectionHeader
+                title="Saved sites"
+                description="Reuse an address and let LoadPulse check it on a schedule."
+              />
             <div className="px-5 pb-5 sm:px-6">
               <div className="flex gap-2">
                 <input
@@ -799,12 +809,12 @@ function ConsoleBody() {
             icon={<Globe2 className="size-5" />}
             title="No run on screen yet"
             description="Start a test above and the metric cards, the live chart and the per-second buckets appear here as the traffic flows."
-            action={
-              <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                <ShieldCheck className="size-3.5" />
-                Owner-only console
-              </span>
-            }
+                action={
+                  <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <ShieldCheck className="size-3.5" />
+                    Private to your account
+                  </span>
+                }
           />
         </Card>
       )}
@@ -822,10 +832,10 @@ function ConsoleBody() {
         />
           <div className="space-y-3 px-5 pb-6 text-[13px] leading-relaxed text-muted-foreground sm:px-6">
             <p>
-              The container panel above samples the CPU and RAM of the machine running LoadPulse every few seconds.
-              Your target site&apos;s own CPU and RAM cannot be read from the outside, so watch those on that server
-              with its own monitoring. What you can measure from here is how it responds under pressure: latency,
-              error rate and throughput.
+              The container panel above samples the CPU and RAM of the shared machine running LoadPulse every few
+              seconds. Your target site&apos;s own CPU and RAM cannot be read from the outside, so watch those on that
+              server with its own monitoring. What you can measure from here is how it responds under pressure:
+              latency, error rate and throughput.
             </p>
             <p>
               A load generator spends its time waiting, not computing. Each connection is mostly idle between the
@@ -837,11 +847,11 @@ function ConsoleBody() {
             requests per second stops rising while you raise connections, the limit is either this container
             (512 MB and one CPU) or the target site, not the setting.
           </p>
-          <p>
-            The app runs in a single small container, so one burst is capped at {LIMITS.maxConcurrency} connections,{" "}
-            {LIMITS.maxDuration} seconds and {formatNumber(LIMITS.maxRequests)} requests. For a longer soak test,
-            run a generator from a machine you control.
-          </p>
+            <p>
+              Every member shares one small container, so a burst is capped at {LIMITS.maxConcurrency} connections,{" "}
+              {LIMITS.maxDuration} seconds and {formatNumber(LIMITS.maxRequests)} requests, and each account can run
+              one test at a time. For a longer soak test, run a generator from a machine you control.
+            </p>
         </div>
       </Card>
     </div>

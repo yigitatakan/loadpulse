@@ -1,5 +1,6 @@
 import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { createServiceClient, getUser, json } from "@/lib/draftship-server";
+import { describeProxyPool } from "@/lib/loadpulse-engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   if (!user) return json({ error: "Sign in first" }, 401);
 
   const role = (user as unknown as { role?: string }).role;
-  if (role !== "admin") return json({ error: "Only the app owner can check proxies." }, 403);
+  const callerEmail = String(user.email ?? "").toLowerCase();
 
   let payload: Record<string, unknown>;
   try {
@@ -36,23 +37,43 @@ export async function POST(req: Request) {
   }
 
   const proxyId = typeof payload.proxyId === "string" ? payload.proxyId : "";
-  if (!proxyId) return json({ error: "Pick a proxy to check." }, 400);
-
   const ds = createServiceClient(req);
 
   let proxyUrl: string;
-  try {
-    const proxy = asRecord(await ds.entities.Proxy.get(proxyId));
-    const host = String(proxy.host ?? "");
-    const port = Number(proxy.port ?? 0);
-    if (!host || !Number.isFinite(port) || port <= 0) {
-      return json({ error: "This proxy is missing its host or port." }, 400);
+  let savedId = "";
+
+  if (!proxyId) {
+    // Nothing saved yet: check the address from the form without storing it.
+    if (role !== "admin") {
+      return json({ error: "Save the proxy first, then press Test." }, 400);
     }
-    const secrets = await ds.entities.ProxySecret.filter({ proxyId });
-    const password = secrets.length > 0 ? String(asRecord(secrets[0]).password ?? "") : "";
-    proxyUrl = buildProxyUrl(host, port, String(proxy.username ?? ""), password);
-  } catch {
-    return json({ error: "That proxy could not be loaded." }, 400);
+    const host = typeof payload.host === "string" ? payload.host.trim() : "";
+    const port = Number(payload.port);
+    const username = typeof payload.username === "string" ? payload.username : "";
+    const password = typeof payload.password === "string" ? payload.password : "";
+    if (!host || !Number.isFinite(port) || port <= 0) {
+      return json({ error: "Enter the proxy host and port first." }, 400);
+    }
+    proxyUrl = buildProxyUrl(host, port, username, password);
+  } else {
+    try {
+      const proxy = asRecord(await ds.entities.Proxy.get(proxyId));
+      const owner = String(proxy.created_by ?? "").toLowerCase();
+      if (owner !== callerEmail) {
+        return json({ error: "That proxy belongs to another account." }, 403);
+      }
+      const host = String(proxy.host ?? "");
+      const port = Number(proxy.port ?? 0);
+      if (!host || !Number.isFinite(port) || port <= 0) {
+        return json({ error: "This proxy is missing its host or port." }, 400);
+      }
+      const secrets = await ds.entities.ProxySecret.filter({ proxyId });
+      const password = secrets.length > 0 ? String(asRecord(secrets[0]).password ?? "") : "";
+      proxyUrl = buildProxyUrl(host, port, String(proxy.username ?? ""), password);
+      savedId = proxyId;
+    } catch {
+      return json({ error: "That proxy could not be loaded." }, 400);
+    }
   }
 
   const agent = new ProxyAgent(proxyUrl);
@@ -66,11 +87,15 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      await ds.entities.Proxy.update(proxyId, {
-        lastError: `The IP check answered with status ${response.status}.`,
-        lastCheckedAt: new Date().toISOString(),
-      });
-      return json({ error: `The IP check answered with status ${response.status}.` }, 400);
+      const message = `The IP check answered with status ${response.status}.`;
+      if (savedId) {
+        try {
+          await ds.entities.Proxy.update(savedId, { lastError: message, lastCheckedAt: new Date().toISOString() });
+        } catch {
+          /* keep the original error */
+        }
+      }
+      return json({ error: message }, 400);
     }
 
     const raw = (await response.json()) as IpInfoResponse;
@@ -80,32 +105,43 @@ export async function POST(req: Request) {
     const city = typeof raw.city?.name === "string" ? raw.city.name : "";
 
     if (!ip) {
-      await ds.entities.Proxy.update(proxyId, {
-        lastError: "The IP check answered without an exit IP.",
-        lastCheckedAt: new Date().toISOString(),
-      });
+      if (savedId) {
+        try {
+          await ds.entities.Proxy.update(savedId, {
+            lastError: "The IP check answered without an exit IP.",
+            lastCheckedAt: new Date().toISOString(),
+          });
+        } catch {
+          /* keep the original error */
+        }
+      }
       return json({ error: "The IP check answered without an exit IP." }, 400);
     }
 
-    await ds.entities.Proxy.update(proxyId, {
-      lastIp: ip,
-      lastCountry: country,
-      lastIsp: isp,
-      lastCity: city,
-      lastCheckedAt: new Date().toISOString(),
-      lastError: "",
-    });
+    if (savedId) {
+      try {
+        await ds.entities.Proxy.update(savedId, {
+          lastIp: ip,
+          lastCountry: country,
+          lastIsp: isp,
+          lastCity: city,
+          lastCheckedAt: new Date().toISOString(),
+          lastError: "",
+        });
+      } catch {
+        /* the check still succeeded */
+      }
+    }
 
     return json({ ip, country, isp, city });
   } catch (err) {
     const message = err instanceof Error ? err.message : "The proxy did not answer";
-    try {
-      await ds.entities.Proxy.update(proxyId, {
-        lastError: message,
-        lastCheckedAt: new Date().toISOString(),
-      });
-    } catch {
-      /* keep the original error */
+    if (savedId) {
+      try {
+        await ds.entities.Proxy.update(savedId, { lastError: message, lastCheckedAt: new Date().toISOString() });
+      } catch {
+        /* keep the original error */
+      }
     }
     return json({ error: `The proxy did not answer: ${message}` }, 400);
   } finally {
@@ -115,4 +151,23 @@ export async function POST(req: Request) {
       /* nothing to close */
     }
   }
+}
+
+/** The owner's shared pool, shown with the login masked. */
+export async function GET(req: Request) {
+  const user = await getUser(req);
+  if (!user) return json({ error: "Sign in first" }, 401);
+  const role = (user as unknown as { role?: string }).role;
+  if (role !== "admin") return json({ configured: false });
+
+  const saved = process.env.PROXY_URL?.trim() ?? "";
+  if (!saved) return json({ configured: false });
+  const pool = describeProxyPool(saved, 1, 1);
+  if (!pool) return json({ configured: false });
+  return json({
+    configured: true,
+    host: pool.host,
+    portStart: pool.portStart,
+    loginMasked: pool.username ? `${pool.username.slice(0, 3)}••••` : "",
+  });
 }

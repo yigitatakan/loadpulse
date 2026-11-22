@@ -107,7 +107,12 @@ export function createServiceClient(req?: Request) {
       Core: {
         InvokeLLM: <R = string>(input: { prompt: string; response_json_schema?: Record<string, unknown> }) => call<R>("POST", "integrations/Core/InvokeLLM", input, h),
         GenerateImage: (input: { prompt: string }) => call<{ url: string }>("POST", "integrations/Core/GenerateImage", input, h),
+        TranscribeAudio: (input: { file_url: string; language?: string }) => call<{ text: string }>("POST", "integrations/Core/TranscribeAudio", input, h),
         SendEmail: (input: { to: string; subject: string; body: string; from_name?: string }) => call<{ success: boolean }>("POST", "integrations/Core/SendEmail", input, h),
+      },
+      Custom: {
+        call: <R = unknown>(integration: string, operationId: string, input: { params?: Record<string, unknown>; body?: unknown } = {}) =>
+          call<{ status: number; ok: boolean; data: R }>("POST", `integrations/Custom/${encodeURIComponent(integration)}/${encodeURIComponent(operationId)}`, input, h),
       },
     },
     connectors: {
