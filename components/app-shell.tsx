@@ -174,7 +174,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           to them. Only test sites you own or are authorised to test. One burst is capped at 300 connections, 45
           seconds and 400,000 requests.
         </p>
-        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">Made with Draftship</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">Made with Draftship · synced from GitHub</p>
       </footer>
     </div>
   );
